@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { format } from "date-fns";
 import { CalendarIcon, Check, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { ConnectLinkedIn } from "@/app/components/ConnectLinkedIn";
 
 const formSchema = z.object({
   category: z.string({
@@ -146,6 +147,14 @@ export function PostGeneratorForm() {
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-col items-center mb-6">
+        <div className="mb-3 text-center">
+          <h2 className="text-xl font-semibold mb-2">Connect Your LinkedIn Account</h2>
+          <p className="text-sm text-gray-600 mb-4">Connect your LinkedIn account to schedule posts directly from this app</p>
+        </div>
+        <ConnectLinkedIn />
+      </div>
+      
       <Card>
         <CardContent className="pt-6">
           <Form {...form}>
