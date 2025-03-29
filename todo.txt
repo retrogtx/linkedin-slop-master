@@ -1,0 +1,21 @@
+We are creating a LinkedIn post generator. 
+
+We use everything possible to generate the best possible post, with inputs from the user about what category of post is it, what is the target audience, what is the goal of the post, etc. 
+And a overall gist they want to convey. 
+
+We then generate a post, and we give them multiple variations of the post using AI. 
+
+We then let them choose the best post, and we give them the post. 
+
+We then schedule the post on LinkedIn using the LinkedIn API. 
+
+I have initialized the project with NextJs, ShadCN, Clerk, TailwindCSS and TypeScript. 
+
+I have installed the Vercel AI SDK and @ai-sdk/google.
+
+Make a very nice UI and UX for the project. 
+
+Make a very nice UI for the user to input the data and generate the post. 
+
+Make a very nice UI for the user to see the post variations. 
+
