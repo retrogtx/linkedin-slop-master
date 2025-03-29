@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Linkedin, AlertTriangle } from 'lucide-react';
@@ -11,6 +11,36 @@ export function ConnectLinkedIn() {
   
   // Check if user has LinkedIn connected
   const isLinkedInConnected = isLoaded && user?.publicMetadata?.linkedInConnected === true;
+  
+  // Auto-connect if token exists in environment
+  useEffect(() => {
+    const autoConnect = async () => {
+      if (isLoaded && !isLinkedInConnected) {
+        try {
+          // Try to auto-connect using token in .env
+          const response = await fetch('/api/linkedin/auto-connect', {
+            method: 'POST'
+          });
+          
+          if (response.ok) {
+            // Reload user to update metadata
+            if (user) {
+              await user.reload();
+              toast({
+                title: 'Success',
+                description: 'LinkedIn account connected automatically',
+              });
+            }
+          }
+        } catch (error) {
+          // Silent failure is okay - we'll just use the manual connect button
+          console.log('Auto-connect failed, will use manual connect button');
+        }
+      }
+    };
+    
+    autoConnect();
+  }, [isLoaded, isLinkedInConnected, user, toast]);
   
   const handleConnect = async () => {
     setIsLoading(true);

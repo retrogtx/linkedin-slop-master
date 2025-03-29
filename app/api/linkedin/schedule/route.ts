@@ -84,6 +84,40 @@ export async function POST(req: Request) {
       );
     }
     
+    // Use environment variable token as fallback (for testing/development)
+    const envToken = process.env.LINKEDIN_ACCESS_TOKEN;
+    
+    if (envToken) {
+      console.log("[LINKEDIN_SCHEDULE] Using token from .env file");
+      
+      // For personal posting, we'll use "me" as the authorId which tells LinkedIn to use the current user
+      const personalId = "me"; // Use "me" to post as the current user
+      
+      // Store this token in user's metadata for future use
+      try {
+        await clerkClient.users.updateUser(userId, {
+          publicMetadata: {
+            linkedInConnected: true,
+          },
+          privateMetadata: {
+            linkedInToken: envToken,
+            linkedInId: personalId,
+            linkedInTokenExpiry: Date.now() + (60 * 24 * 60 * 60 * 1000), // Set expiry to 60 days from now
+          }
+        });
+        console.log("[LINKEDIN_SCHEDULE] Stored .env token in user metadata");
+      } catch (err) {
+        console.error("[LINKEDIN_SCHEDULE] Failed to store token in metadata", err);
+        // Continue anyway, since we can use the .env token directly
+      }
+      
+      return await createLinkedInPost(
+        requestBody.postContent,
+        envToken,
+        personalId
+      );
+    }
+    
     // Direct the user to connect their LinkedIn account
     console.log("[LINKEDIN_SCHEDULE] No LinkedIn token found");
     return NextResponse.json(
@@ -118,19 +152,18 @@ async function createLinkedInPost(
     );
   }
   
-  // Prepare the headers for LinkedIn API
-  const headers = {
-    'Authorization': `Bearer ${accessToken}`,
-    'Content-Type': 'application/json',
-    'X-Restli-Protocol-Version': '2.0.0'
-  };
-
-  // Prepare the post data for LinkedIn
-  const authorType = isOrganization ? 'organization' : 'person';
+  // For personal accounts, use "person" when using "me" as authorId
+  // LinkedIn API treats "me" as a special case for "person" entity type
+  let authorUrn = "";
+  if (authorId === "me") {
+    authorUrn = "urn:li:person:me";
+  } else {
+    authorUrn = `urn:li:member:${authorId}`;
+  }
   
   // Use type assertion to avoid TypeScript errors
   const postData: any = {
-    "author": `urn:li:${authorType}:${authorId}`,
+    "author": authorUrn,
     "lifecycleState": "PUBLISHED",
     "specificContent": {
       "com.linkedin.ugc.ShareContent": {
@@ -168,7 +201,11 @@ async function createLinkedInPost(
   console.log("[LINKEDIN_SCHEDULE] Sending request to LinkedIn API");
   const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
     method: 'POST',
-    headers: headers,
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'X-Restli-Protocol-Version': '2.0.0'
+    },
     body: JSON.stringify(postData)
   });
 
