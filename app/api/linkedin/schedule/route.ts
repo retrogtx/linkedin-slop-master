@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       oauthAccounts: user.externalAccounts?.length
     });
     
-    // Check for token in private metadata first (from explicit LinkedIn connect)
+    // Check for token in private metadata (from explicit LinkedIn connect)
     if (user.privateMetadata && 
         typeof user.privateMetadata === 'object' && 
         'linkedInToken' in user.privateMetadata && 
@@ -84,92 +84,18 @@ export async function POST(req: Request) {
       );
     }
     
-    // Check for LinkedIn in external accounts
-    let linkedInAccount = user.externalAccounts?.find(
-      account => account.provider === 'oauth_linkedin'
-    );
-    
-    if (linkedInAccount) {
-      console.log("[LINKEDIN_SCHEDULE] Found LinkedIn account in Clerk, but no token available");
-      // We can't directly access the OAuth token from Clerk's externalAccounts
-    }
-    
-    // If no previous LinkedIn connection, check if we have token directly from frontend
-    if (requestBody.linkedInToken && requestBody.authorId) {
-      console.log("[LINKEDIN_SCHEDULE] Using token provided in request body");
-      
-      // Prepare the post with the manually provided credentials
-      return await createLinkedInPost(
-        requestBody.postContent,
-        requestBody.linkedInToken,
-        requestBody.authorId
-      );
-    }
-    
-    // Fall back to using organization credentials
-    console.log("[LINKEDIN_SCHEDULE] Falling back to organization posting using client credentials");
-    
-    // Get LinkedIn credentials directly from environment variables if available
-    if (process.env.LINKEDIN_TEST_TOKEN && process.env.LINKEDIN_TEST_USER_ID) {
-      console.log("[LINKEDIN_SCHEDULE] Using test credentials from environment");
-      
-      return await createLinkedInPost(
-        requestBody.postContent,
-        process.env.LINKEDIN_TEST_TOKEN,
-        process.env.LINKEDIN_TEST_USER_ID
-      );
-    }
-    
-    // Try the client credentials flow with organization ID
-    console.log("[LINKEDIN_SCHEDULE] Using LinkedIn client credentials flow");
-    
-    // Use client credentials flow with your app
-    const tokenResponse = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: process.env.LINKEDIN_CLIENT_ID || '',
-        client_secret: process.env.LINKEDIN_CLIENT_SECRET || '',
-      })
-    });
-    
-    if (!tokenResponse.ok) {
-      console.error("[LINKEDIN_TOKEN_ERROR]", await tokenResponse.text());
-      return NextResponse.json(
-        { error: "Failed to get LinkedIn access token. Please connect your LinkedIn account first by clicking the 'Connect LinkedIn' button at the top of the page." },
-        { status: 500 }
-      );
-    }
-    
-    const tokenData = await tokenResponse.json();
-    const accessToken = tokenData.access_token;
-    
-    // For client credentials flow, we need to use the organization ID
-    // This is different from posting as a user
-    const organizationId = process.env.LINKEDIN_ORGANIZATION_ID;
-    
-    if (!organizationId) {
-      return NextResponse.json(
-        { error: "LinkedIn organization ID not configured. Please connect your LinkedIn account first by clicking the 'Connect LinkedIn' button at the top of the page." },
-        { status: 500 }
-      );
-    }
-    
-    return await createLinkedInPost(
-      requestBody.postContent,
-      accessToken,
-      organizationId,
-      true // is organization
+    // Direct the user to connect their LinkedIn account
+    console.log("[LINKEDIN_SCHEDULE] No LinkedIn token found");
+    return NextResponse.json(
+      { error: "LinkedIn account not connected. Please click the 'Connect LinkedIn' button at the top of the page to authorize posting to your account." },
+      { status: 400 }
     );
     
   } catch (error: unknown) {
     console.error("[LINKEDIN_SCHEDULE_ERROR]", error);
     return NextResponse.json(
       { 
-        error: "Failed to publish post to LinkedIn. Please connect your LinkedIn account first by clicking the 'Connect LinkedIn' button at the top of the page.", 
+        error: "Failed to publish post to LinkedIn", 
         details: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
       },
@@ -202,7 +128,8 @@ async function createLinkedInPost(
   // Prepare the post data for LinkedIn
   const authorType = isOrganization ? 'organization' : 'person';
   
-  const postData: LinkedInPostData = {
+  // Use type assertion to avoid TypeScript errors
+  const postData: any = {
     "author": `urn:li:${authorType}:${authorId}`,
     "lifecycleState": "PUBLISHED",
     "specificContent": {
@@ -272,11 +199,14 @@ async function createLinkedInPost(
     linkedInResponse = { message: responseText };
   }
   
+  // Check for the post ID in the response headers
+  const postId = response.headers.get('X-RestLi-Id');
+  
   console.log("[LINKEDIN_SCHEDULE] Success! LinkedIn post created");
   return NextResponse.json({
     success: true,
     message: "Post published successfully on LinkedIn",
-    postId: linkedInResponse.id,
+    postId: postId || linkedInResponse.id,
     response: linkedInResponse
   });
 } 

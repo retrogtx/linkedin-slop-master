@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     authUrl.searchParams.append('client_id', LINKEDIN_CLIENT_ID);
     authUrl.searchParams.append('redirect_uri', LINKEDIN_REDIRECT_URI);
     authUrl.searchParams.append('state', userId); // Use userId as state for security
-    authUrl.searchParams.append('scope', 'openid profile w_member_social');
+    authUrl.searchParams.append('scope', 'w_member_social');
     
     // Redirect user to LinkedIn authorization page
     return NextResponse.json({

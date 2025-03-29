@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, Linkedin } from 'lucide-react';
+import { Loader2, Linkedin, AlertTriangle } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 
 export function ConnectLinkedIn() {
@@ -69,36 +69,52 @@ export function ConnectLinkedIn() {
   }
   
   return (
-    <>
+    <div className="w-full flex flex-col items-center space-y-4">
+      {!isLinkedInConnected && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-md max-w-md">
+          <div className="flex items-start">
+            <AlertTriangle className="h-5 w-5 mr-2 mt-0.5" />
+            <div>
+              <h3 className="font-semibold">Connection Required</h3>
+              <p className="text-sm mt-1">
+                You must connect your LinkedIn account to post content. This grants our app permission to post on your behalf.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {isLinkedInConnected ? (
         <Button
+          size="lg"
           variant="outline"
-          className="bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700"
+          className="bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 px-6"
           onClick={handleDisconnect}
           disabled={isLoading}
         >
           {isLoading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           ) : (
-            <Linkedin className="mr-2 h-4 w-4" />
+            <Linkedin className="mr-2 h-5 w-5" />
           )}
           LinkedIn Connected
         </Button>
       ) : (
         <Button
-          variant="outline"
-          className="border-blue-600 bg-white text-blue-600 hover:bg-blue-50"
+          size="lg"
+          variant="default"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6"
           onClick={handleConnect}
           disabled={isLoading}
         >
           {isLoading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           ) : (
-            <Linkedin className="mr-2 h-4 w-4" />
+            <Linkedin className="mr-2 h-5 w-5" />
           )}
           Connect LinkedIn
         </Button>
       )}
-    </>
+    </div>
   );
 } 

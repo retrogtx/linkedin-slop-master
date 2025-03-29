@@ -53,10 +53,11 @@ export async function GET(req: Request) {
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
     
-    // Get user's LinkedIn profile
-    const profileResponse = await fetch('https://api.linkedin.com/v2/userinfo', {
+    // Get user's LinkedIn profile and ID
+    const profileResponse = await fetch('https://api.linkedin.com/v2/me', {
       headers: {
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${accessToken}`,
+        'X-Restli-Protocol-Version': '2.0.0'
       }
     });
     
@@ -69,7 +70,8 @@ export async function GET(req: Request) {
     }
     
     const profileData = await profileResponse.json();
-    const linkedInId = profileData.sub; // The LinkedIn user ID
+    // The LinkedIn member ID is in the 'id' field
+    const linkedInId = profileData.id;
     
     // Store LinkedIn credentials with Clerk user
     try {
